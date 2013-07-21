@@ -1,6 +1,7 @@
+Incodoc 
+=======
 
-Incodoc: invert markdown annotated source code to code describing markdown documentation 
-========================================================================================
+Invert markdown annotated source code to code describing markdown documentation 
 
 Huub de Beer 
 
