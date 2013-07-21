@@ -1,0 +1,29 @@
+{
+    "name": "incodoc",
+    "preferGlobal": true,
+    "version": "0.0.1",
+    "author": "Huub de Beer <H.T.de.Beer@gmail.com>",
+    "description": "Invert markdown annotated source code to code describing markdown documentation",
+    "bin": {
+        "incodoc": "./bin/incodoc"
+    },
+    "main": "./lib/incodoc",
+    "repository":  {
+        "type": "git",
+        "url": ""
+    },
+    "keywords": [
+        "documentation generator",
+        "literate programming",
+        "js",
+        "markdown"
+        ],
+    "dependencies": {
+        "optimist": "0.6.x",
+        "temporary": "0.0.5"
+    },
+    "licence": "MIT",
+    "engines": {
+        "node": ">=0.10.x"
+    }
+}
