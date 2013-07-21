@@ -71,7 +71,7 @@ If another output format is desired, you can select
 -   'github',
 -   'man'
 
-as well.
+as well through the `-f` option.
 
 Finally, you can specify a special CSS stylesheet via the `-s` option. If no stylesheet is specified, the generated HTML file points to `style.css`.
 
