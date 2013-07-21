@@ -5,12 +5,12 @@
     "author": "Huub de Beer <H.T.de.Beer@gmail.com>",
     "description": "Invert markdown annotated source code to code describing markdown documentation",
     "bin": {
-        "incodoc": "./bin/incodoc"
+        "incodoc": "./bin/incodoc.js"
     },
-    "main": "./lib/incodoc",
+    "main": "./lib/incodoc.js",
     "repository":  {
         "type": "git",
-        "url": ""
+        "url": "git@github.com:htdebeer/incodoc.git"
     },
     "keywords": [
         "documentation generator",
