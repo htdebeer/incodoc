@@ -1,6 +1,92 @@
 #!/usr/bin/env node
 "use strict";
-
+/**
+ * 
+ * Incodoc: invert markdown annotated source code to code describing markdown documentation
+ * Huub de Beer
+ * 2013-07-20
+ *
+ * # Install
+ *
+ * Install incodoc by:
+ *
+ * ~~~ {.bash}
+ * npm install -g incodoc
+ * ~~~
+ *
+ * # Usage
+ *
+ * The most simplest usage is:
+ *
+ * ~~~ {.bash}
+ * incodoc file1 file2 ... fileN
+ * ~~~
+ *
+ * That command inverts all files listed and places the generated documentation in the current working directory.
+ *
+ * If you want, you can enable linenumbers in code blocks as well as choose
+ * another highlighting style via, for example:
+ *
+ * ~~~ {.bash}
+ * incodoc -l -h monochrome file1
+ * ~~~
+ *
+ * This will show linenumbers as well as choose the monochrome style. Possible
+ * styles are:
+ *
+ *  -   pygments
+ *  -   kate
+ *  -   monochrome
+ *  -   espresso
+ *  -   haddock
+ *  -   tango
+ *  -   zenburn
+ *
+ * (as per http://johnmacfarlane.net/pandoc/demos.html)
+ *
+ * If another output format is desired, you can select 
+ *
+ *  -   'plain', '
+ *  -   rst', 
+ *  -   'odt',
+ *  -   'docbook',
+ *  -   'latex', 
+ *  -   'github', 
+ *  -   'man' 
+ *
+ *  as well.
+ *
+ * Finally, you can specify a special CSS stylesheet via the `-s` option. If
+ * no stylesheet is specified, the generated HTML file points to `style.css`. 
+ *
+ * # Licence
+ * 
+ * Copyright (C) 2013 Huub de Beer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * # Implementation
+ *
+ * ## Define and check options using
+ * [optimist](https://github.com/substack/node-optimist)
+ *
+ */
 var argv = require('optimist')
     .usage("Inverts comments in javascript program to markdown and code lines to markdown code blocks. optimist [-n] [-f format] filename")
     .describe("f", "One of the following output formats: docbook, github, html, latex, man, markdown, odt, plain, rst")
@@ -16,6 +102,7 @@ var argv = require('optimist')
     .alias("s", "style")
     .default("s", "style.css")
     .argv;
+
 
 var HIGHLIGHT_STYLES = ["pygments", "kate", "monochrome", "espresso", "zenburn", "haddock", "tango"],
     OUTPUT_FORMATS = [{
@@ -91,7 +178,24 @@ if (FILES.length === 0) {
     FILES.forEach(check_files);
 }
 
-// Invert each file listed
+
+
+/**
+ * ## Inversion process
+ *
+ * After all options are gathered and checked, the actual inversion process
+ * starts by using two modules:
+ *
+ * -    The [incodoc module](doc/incodoc.html) parses and
+ *      inverts the source code
+ * -    The [pandocwrapper module](doc/pandocwrapper.html) calls the
+ *      [pandoc](http://johnmacfarlane.net/pandoc/README.html)
+ *      command to convert the markdown documentation into HTML (or some other
+ *      format)
+ *
+ * Uses the [temporary](https://github.com/vesln/temporary) package to create
+ * a temporary file to use in the pandoc-conversion.
+ */
 
 var incodoc = require("../lib/incodoc")({line_numbers: LINE_NUMBERS }),
     pandoc = require("../lib/pandocwrapper"),

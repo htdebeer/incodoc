@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; background-color: #dddddd; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { font-weight: bold; }
+code > span.dt { color: #800000; }
+code > span.dv { color: #0000ff; }
+code > span.bn { color: #0000ff; }
+code > span.fl { color: #800080; }
+code > span.ch { color: #ff00ff; }
+code > span.st { color: #dd0000; }
+code > span.co { color: #808080; font-style: italic; }
+code > span.al { color: #00ff00; font-weight: bold; }
+code > span.fu { color: #000080; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav id="TOC">
+<ul>
+<li><a href="#install">Install</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#licence">Licence</a></li>
+<li><a href="#implementation">Implementation</a><ul>
+<li><a href="#define-and-check-options-using">Define and check options using</a></li>
+<li><a href="#inversion-process">Inversion process</a></li>
+</ul></li>
+</ul>
+</nav>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">#!/usr/bin/env node
+<span class="st">&quot;use strict&quot;</span>;</code></pre>
+<p>Incodoc: invert markdown annotated source code to code describing markdown documentation Huub de Beer 2013-07-20</p>
+<h1 id="install"><a href="#install">Install</a></h1>
+<p>Install incodoc by:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">npm <span class="kw">install</span> -g incodoc</code></pre>
+<h1 id="usage"><a href="#usage">Usage</a></h1>
+<p>The most simplest usage is:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">incodoc file1 file2 ..<span class="kw">.</span> fileN</code></pre>
+<p>That command inverts all files listed and places the generated documentation in the current working directory.</p>
+<p>If you want, you can enable linenumbers in code blocks as well as choose another highlighting style via, for example:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">incodoc -l -h monochrome file1</code></pre>
+<p>This will show linenumbers as well as choose the monochrome style. Possible styles are:</p>
+<ul>
+<li>pygments</li>
+<li>kate</li>
+<li>monochrome</li>
+<li>espresso</li>
+<li>haddock</li>
+<li>tango</li>
+<li>zenburn</li>
+</ul>
+<p>(as per http://johnmacfarlane.net/pandoc/demos.html)</p>
+<p>If another output format is desired, you can select</p>
+<ul>
+<li>'plain', '</li>
+<li>rst',</li>
+<li>'odt',</li>
+<li>'docbook',</li>
+<li>'latex',</li>
+<li>'github',</li>
+<li>'man'</li>
+</ul>
+<p>as well.</p>
+<p>Finally, you can specify a special CSS stylesheet via the <code>-s</code> option. If no stylesheet is specified, the generated HTML file points to <code>style.css</code>.</p>
+<h1 id="licence"><a href="#licence">Licence</a></h1>
+<p>Copyright (C) 2013 Huub de Beer</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<h1 id="implementation"><a href="#implementation">Implementation</a></h1>
+<h2 id="define-and-check-options-using"><a href="#define-and-check-options-using">Define and check options using</a></h2>
+<p><a href="https://github.com/substack/node-optimist">optimist</a></p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> argv = require(<span class="ch">&#39;optimist&#39;</span>)
+    .<span class="fu">usage</span>(<span class="st">&quot;Inverts comments in javascript program to markdown and code lines to markdown code blocks. optimist [-n] [-f format] filename&quot;</span>)
+    .<span class="fu">describe</span>(<span class="st">&quot;f&quot;</span>, <span class="st">&quot;One of the following output formats: docbook, github, html, latex, man, markdown, odt, plain, rst&quot;</span>)
+    .<span class="fu">alias</span>(<span class="st">&quot;f&quot;</span>, <span class="st">&quot;format&quot;</span>)
+    .<span class="fu">default</span>(<span class="st">&quot;f&quot;</span>, <span class="st">&quot;html&quot;</span>)
+    .<span class="fu">describe</span>(<span class="st">&quot;h&quot;</span>, <span class="st">&quot;One of the following code highlight styles: pygments, kate, monochrome, espresso, zenburn, haddock, tango&quot;</span>)
+    .<span class="fu">alias</span>(<span class="st">&quot;h&quot;</span>, <span class="st">&quot;highlight&quot;</span>)
+    .<span class="fu">default</span>(<span class="st">&quot;h&quot;</span>, <span class="st">&quot;kate&quot;</span>)
+    .<span class="fu">boolean</span>(<span class="st">&quot;l&quot;</span>)
+    .<span class="fu">alias</span>(<span class="st">&quot;l&quot;</span>, <span class="st">&quot;linenumbers&quot;</span>)
+    .<span class="fu">describe</span>(<span class="st">&quot;l&quot;</span>, <span class="st">&quot;Add linenumbers to code blocks&quot;</span>)
+    .<span class="fu">describe</span>(<span class="st">&quot;s&quot;</span>, <span class="st">&quot;CSS file to style the generated documentation&quot;</span>)
+    .<span class="fu">alias</span>(<span class="st">&quot;s&quot;</span>, <span class="st">&quot;style&quot;</span>)
+    .<span class="fu">default</span>(<span class="st">&quot;s&quot;</span>, <span class="st">&quot;style.css&quot;</span>)
+    .<span class="fu">argv</span>;
+
+
+<span class="kw">var</span> HIGHLIGHT_STYLES = [<span class="st">&quot;pygments&quot;</span>, <span class="st">&quot;kate&quot;</span>, <span class="st">&quot;monochrome&quot;</span>, <span class="st">&quot;espresso&quot;</span>, <span class="st">&quot;zenburn&quot;</span>, <span class="st">&quot;haddock&quot;</span>, <span class="st">&quot;tango&quot;</span>],
+    OUTPUT_FORMATS = [{
+        <span class="dt">name</span>: <span class="ch">&#39;docbook&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;docbook&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;dbk&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;html&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;html5&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;html&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;latex&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;latex&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;tex&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;markdown&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;markdown&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;markdown&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;plain&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;plain&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;txt&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;github&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;markdown_github&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;md&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;man&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;man&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;man&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;odt&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;odt&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;odt&#39;</span>
+    }, {
+        <span class="dt">name</span>: <span class="ch">&#39;rst&#39;</span>,
+        <span class="dt">pandoc</span>: <span class="ch">&#39;rst&#39;</span>,
+        <span class="dt">extension</span>: <span class="ch">&#39;rst&#39;</span>
+    }],          
+    find_output = <span class="kw">function</span>(format) {
+        <span class="kw">return</span> <span class="kw">format</span>.<span class="fu">name</span> === <span class="kw">argv</span>.<span class="fu">f</span>;
+    },
+    FORMAT = <span class="kw">OUTPUT_FORMATS</span>.<span class="fu">filter</span>(find_output),
+    HIGHLIGHT = <span class="kw">argv</span>.<span class="fu">h</span>,
+    LINE_NUMBERS = <span class="kw">argv</span>.<span class="fu">l</span>,
+    FILES = <span class="kw">argv</span>._;
+
+<span class="co">// Check and set options set by the user</span>
+
+<span class="kw">if</span> (<span class="kw">FORMAT</span>.<span class="fu">length</span> !== <span class="dv">1</span>) {
+    <span class="kw">var</span> output_name = <span class="kw">function</span>(format) {
+        <span class="kw">return</span> <span class="kw">format</span>.<span class="fu">name</span>;
+    };
+    <span class="kw">console</span>.<span class="fu">error</span>(<span class="st">&quot;Output format should be one of: &quot;</span> + <span class="kw">OUTPUT_FORMATS</span>.<span class="fu">map</span>(output_name).<span class="fu">join</span>(<span class="st">&quot;, &quot;</span>) + <span class="st">&quot;; it is now: &quot;</span> + <span class="kw">argv</span>.<span class="fu">f</span>);
+    <span class="kw">process</span>.<span class="fu">exit</span>(<span class="dv">1</span>);
+}
+FORMAT = FORMAT[<span class="dv">0</span>];
+
+<span class="kw">if</span> (<span class="kw">HIGHLIGHT_STYLES</span>.<span class="fu">indexOf</span>(HIGHLIGHT) === -<span class="dv">1</span>) {
+    <span class="kw">console</span>.<span class="fu">error</span>(<span class="st">&quot;Code highlighting style should be one of: &quot;</span> + <span class="kw">HIGHLIGHT_STYLES</span>.<span class="fu">join</span>(<span class="st">&quot;, &quot;</span>) + <span class="st">&quot;; it is now: &quot;</span> + HIGHLIGHT);
+    <span class="kw">process</span>.<span class="fu">exit</span>(<span class="dv">1</span>);
+}
+
+<span class="kw">if</span> (<span class="kw">FILES</span>.<span class="fu">length</span> === <span class="dv">0</span>) {
+    <span class="kw">console</span>.<span class="fu">error</span>(<span class="st">&quot;No javascript files to invert listed&quot;</span>);
+    <span class="kw">process</span>.<span class="fu">exit</span>(<span class="dv">1</span>);
+} <span class="kw">else</span> {
+
+    <span class="kw">var</span> check_files = <span class="kw">function</span>(filename) {
+        <span class="co">// does it exists, and is its extension .js?    </span>
+    };
+
+    <span class="kw">FILES</span>.<span class="fu">forEach</span>(check_files);
+}
+
+</code></pre>
+<h2 id="inversion-process"><a href="#inversion-process">Inversion process</a></h2>
+<p>After all options are gathered and checked, the actual inversion process starts by using two modules:</p>
+<ul>
+<li>The <a href="doc/incodoc.html">incodoc module</a> parses and inverts the source code</li>
+<li>The <a href="doc/pandocwrapper.html">pandocwrapper module</a> calls the <a href="http://johnmacfarlane.net/pandoc/README.html">pandoc</a> command to convert the markdown documentation into HTML (or some other format)</li>
+</ul>
+<p>Uses the <a href="https://github.com/vesln/temporary">temporary</a> package to create a temporary file to use in the pandoc-conversion.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+<span class="kw">var</span> incodoc = require(<span class="st">&quot;../lib/incodoc&quot;</span>)({<span class="dt">line_numbers</span>: LINE_NUMBERS }),
+    pandoc = require(<span class="st">&quot;../lib/pandocwrapper&quot;</span>),
+    fs = require(<span class="st">&quot;fs&quot;</span>),
+    path = require(<span class="st">&quot;path&quot;</span>),
+    default_style = <span class="st">&quot;style.css&quot;</span>,
+    Tempfile = require(<span class="st">&quot;temporary/lib/file&quot;</span>);
+
+<span class="kw">var</span> process_file = <span class="kw">function</span>(filename) {
+    <span class="kw">var</span> infile = filename,
+        outfile = <span class="kw">path</span>.<span class="fu">basename</span>(filename, <span class="st">&quot;.js&quot;</span>) + <span class="st">&quot;.&quot;</span> + <span class="kw">FORMAT</span>.<span class="fu">extension</span>,
+        tempfile = <span class="kw">new</span> Tempfile();
+
+    <span class="kw">var</span> process = <span class="kw">function</span>(err, source_code) {
+        <span class="kw">if</span> (err) <span class="kw">throw</span> err;
+
+        <span class="kw">fs</span>.<span class="fu">writeFileSync</span>(<span class="kw">tempfile</span>.<span class="fu">path</span>, <span class="kw">incodoc</span>.<span class="fu">invert</span>(source_code));
+
+        <span class="kw">pandoc</span>.<span class="fu">convert</span>(<span class="kw">tempfile</span>.<span class="fu">path</span>, <span class="ch">&#39;markdown&#39;</span>, outfile, <span class="kw">FORMAT</span>.<span class="fu">pandoc</span>, {
+            <span class="st">&quot;highlight-style&quot;</span>: HIGHLIGHT,
+            <span class="st">&quot;toc&quot;</span>: <span class="kw">true</span>,
+            <span class="st">&quot;standalone&quot;</span>: <span class="kw">true</span>,
+            <span class="st">&quot;css&quot;</span>: default_style
+        });
+
+    };
+
+    <span class="kw">fs</span>.<span class="fu">readFile</span>(infile, <span class="ch">&#39;utf-8&#39;</span>, process);
+    <span class="kw">tempfile</span>.<span class="fu">unlink</span>();
+};
+
+<span class="kw">FILES</span>.<span class="fu">forEach</span>(process_file);</code></pre>
+</body>
+</html>

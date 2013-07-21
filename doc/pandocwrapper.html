@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Huub de Beer">
+  <meta name="dcterms.date" content="2013-07-20">
+  <title>Pandocwrapper: simple wrapper around the pandoc command</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; background-color: #dddddd; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { font-weight: bold; }
+code > span.dt { color: #800000; }
+code > span.dv { color: #0000ff; }
+code > span.bn { color: #0000ff; }
+code > span.fl { color: #800080; }
+code > span.ch { color: #ff00ff; }
+code > span.st { color: #dd0000; }
+code > span.co { color: #808080; font-style: italic; }
+code > span.al { color: #00ff00; font-weight: bold; }
+code > span.fu { color: #000080; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<h1 class="title">Pandocwrapper: simple wrapper around the pandoc command</h1>
+<h2 class="author">Huub de Beer</h2>
+<h3 class="date">2013-07-20</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#licence">Licence</a></li>
+<li><a href="#implementation">Implementation</a></li>
+</ul>
+</nav>
+<h1 id="licence"><a href="#licence">Licence</a></h1>
+<p>Copyright (C) 2013 Huub de Beer</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<h1 id="implementation"><a href="#implementation">Implementation</a></h1>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+<span class="kw">var</span> pandocwrapper = {};</code></pre>
+<p>Run the <a href="http://johnmacfarlane.net/pandoc">pandoc</a> command, assuming it has been installed. It converts <code>sourcefile</code> (with format <code>sourceformat</code>) to the <code>outformat</code> and writes it to <code>outfile</code>. Extra options can be set through the <code>options</code> hash. See for all possible options the <a href="http://johnmacfarlane.net/pandoc/README.html">pandoc's manual</a>.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+<span class="kw">pandocwrapper</span>.<span class="fu">convert</span> = <span class="kw">function</span>(sourcefile, sourceformat, outfile, outformat, options) {
+   </code></pre>
+<p>Combine all options into one command string for the system to execute.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+        <span class="kw">var</span> options_to_args = <span class="kw">function</span>(args, name) {
+            <span class="kw">var</span> option = (<span class="kw">name</span>.<span class="fu">length</span> === <span class="dv">1</span>) ? <span class="st">&quot;-&quot;</span> + <span class="dt">name</span>: <span class="st">&quot;--&quot;</span> + name,
+                value = options[name];
+
+            <span class="kw">args</span>.<span class="fu">push</span>(option);
+            <span class="kw">if</span> (<span class="kw">typeof</span> value !== <span class="st">&quot;boolean&quot;</span>) {
+                <span class="kw">args</span>.<span class="fu">push</span>(value);
+            }
+
+            <span class="kw">return</span> args;
+        },
+        command = <span class="kw">Object</span>
+            .<span class="fu">keys</span>(options)
+            .<span class="fu">reduce</span>(
+                    options_to_args, 
+                    [<span class="st">&quot;pandoc&quot;</span>, <span class="st">&quot;--from&quot;</span>, sourceformat, <span class="st">&quot;-o&quot;</span>, outfile, <span class="st">&quot;--to&quot;</span>, outformat]
+                    )
+            .<span class="fu">concat</span>(sourcefile)
+            .<span class="fu">join</span>(<span class="st">&quot; &quot;</span>);</code></pre>
+<p>Run the command. When there is a problem it'll stop and report the errors.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+    require(<span class="st">&quot;child_process&quot;</span>).<span class="fu">exec</span>(command, <span class="kw">function</span>(error, stdout, stderr) {
+        <span class="kw">if</span> (error) {
+            <span class="kw">console</span>.<span class="fu">error</span>(stderr);
+            <span class="kw">throw</span> error;
+        }
+    });
+
+};
+
+<span class="kw">module</span>.<span class="fu">exports</span> = pandocwrapper;</code></pre>
+</body>
+</html>

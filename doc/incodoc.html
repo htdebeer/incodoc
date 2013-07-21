@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Huub de Beer">
+  <meta name="dcterms.date" content="2013-07-20">
+  <title>incodoc: invert markdown annotated source code to code describing markdown documentation</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; background-color: #dddddd; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { font-weight: bold; }
+code > span.dt { color: #800000; }
+code > span.dv { color: #0000ff; }
+code > span.bn { color: #0000ff; }
+code > span.fl { color: #800080; }
+code > span.ch { color: #ff00ff; }
+code > span.st { color: #dd0000; }
+code > span.co { color: #808080; font-style: italic; }
+code > span.al { color: #00ff00; font-weight: bold; }
+code > span.fu { color: #000080; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<h1 class="title">incodoc: invert markdown annotated source code to code describing markdown documentation</h1>
+<h2 class="author">Huub de Beer</h2>
+<h3 class="date">2013-07-20</h3>
+</header>
+<nav id="TOC">
+<ul>
+<li><a href="#licence">Licence</a></li>
+<li><a href="#implementation">Implementation</a><ul>
+<li><a href="#parse-javascript-source-code">Parse javascript source code</a></li>
+<li><a href="#generate-documentation">Generate documentation</a></li>
+</ul></li>
+<li><a href="#public-interface">Public interface</a></li>
+</ul>
+</nav>
+<h1 id="licence"><a href="#licence">Licence</a></h1>
+<p>Copyright (C) 2013 Huub de Beer</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+<h1 id="implementation"><a href="#implementation">Implementation</a></h1>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+<span class="kw">var</span> incodoc = <span class="kw">function</span>( config ) {</code></pre>
+<h2 id="parse-javascript-source-code"><a href="#parse-javascript-source-code">Parse javascript source code</a></h2>
+<p>Parse javascript source code into a sequence of subsequent blocks. A block is either markdown documentation or javascript code. A markdown documentation block is recognized by:</p>
+<ul>
+<li>it starts with a line containing only <code>/**</code>, excluding whitespace,</li>
+<li>it ends with a line containing only <code>*</code> immediately followed by <code>/</code>, excluding whitespace,</li>
+<li>every line in between starts with a <code>*</code>, possibly preceded by some whitespace.</li>
+</ul>
+<p>Everything outside a markdown documentation block is recognized as a code block.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+    <span class="kw">var</span> parse = <span class="kw">function</span>( source ) {</code></pre>
+<p>We write a simple recursive descent parser that recognizes the different blocks line by line. The <code>next_line</code> function advances the current line to the next in the source code, storing and returning that line. When the parser follows a dead end, the next line can be re-added to the source code to try to recognize another kind of block.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+        <span class="kw">var</span> lines = <span class="kw">source</span>.<span class="fu">split</span>( <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> ),
+            line,
+            line_number = <span class="dv">0</span>,
+            next_line = <span class="kw">function</span>() {
+                line = <span class="kw">lines</span>.<span class="fu">shift</span>();
+                line_number++;
+                <span class="kw">return</span> line;
+            },
+            unnext_line = <span class="kw">function</span>() {
+                <span class="kw">lines</span>.<span class="fu">unshift</span>( line );
+                line_number--;
+            };
+
+        <span class="kw">var</span> DOC_START = <span class="ot">/</span><span class="fl">^</span><span class="bn">\s</span><span class="fl">*\/\*\*(</span><span class="ot">.</span><span class="fl">*)$</span><span class="ot">/</span>,
+            DOC_CONTINUE = <span class="ot">/</span><span class="fl">^</span><span class="bn">\s</span><span class="fl">*\*(</span><span class="ot">.</span><span class="fl">*)$</span><span class="ot">/</span>,
+            DOC_END = <span class="ot">/</span><span class="fl">^</span><span class="bn">\s</span><span class="fl">*\*\/(</span><span class="ot">.</span><span class="fl">*)$</span><span class="ot">/</span>;
+
+        <span class="kw">var</span> parse_documentation_block = <span class="kw">function</span>() {
+                <span class="kw">var</span> block = [];
+                <span class="kw">while</span> (<span class="kw">lines</span>.<span class="fu">length</span> &gt; <span class="dv">0</span> &amp;&amp; !<span class="kw">DOC_END</span>.<span class="fu">test</span>( next_line() )) {
+                    <span class="kw">if</span> (<span class="kw">DOC_CONTINUE</span>.<span class="fu">test</span>( line )) {
+                        <span class="kw">block</span>.<span class="fu">push</span>( <span class="kw">DOC_CONTINUE</span>.<span class="fu">exec</span>(line)[<span class="dv">1</span>].<span class="fu">trim</span>() );
+                    } <span class="kw">else</span> {
+                        <span class="kw">throw</span> <span class="kw">new</span> Error( 
+                                <span class="st">&quot;Expected a documentation line starting with * at line &quot;</span> +
+                                line_number +
+                                <span class="st">&quot;, instead found &#39;&quot;</span> +
+                                line +
+                                <span class="st">&quot;&#39;&quot;</span>
+                                );
+                    }
+                }
+
+                <span class="kw">if</span> (<span class="kw">lines</span>.<span class="fu">length</span> &gt; <span class="dv">0</span>) {
+                    <span class="kw">return</span> <span class="kw">block</span>.<span class="fu">join</span>( <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> );
+                } <span class="kw">else</span>{
+                    <span class="kw">throw</span> <span class="kw">new</span> Error( <span class="st">&quot;Unexpected EOF while parsing documentation block&quot;</span> );
+                }
+            };
+
+        <span class="kw">var</span> parse_code_block = <span class="kw">function</span>() {
+                <span class="kw">var</span> block = [];
+                <span class="kw">while</span> (<span class="kw">lines</span>.<span class="fu">length</span> &gt; <span class="dv">0</span> &amp;&amp; !<span class="kw">DOC_START</span>.<span class="fu">test</span>( next_line() )) {
+                    <span class="kw">block</span>.<span class="fu">push</span>( line );
+                }
+
+                <span class="kw">if</span> (<span class="kw">lines</span>.<span class="fu">length</span> &gt; <span class="dv">0</span>) unnext_line();
+
+                <span class="kw">return</span> <span class="kw">block</span>.<span class="fu">join</span>( <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> );
+            };
+
+        <span class="kw">var</span> parse_block = <span class="kw">function</span>() {
+                <span class="kw">if</span> (<span class="kw">DOC_START</span>.<span class="fu">test</span>( next_line() )) {
+                    <span class="kw">return</span> {
+                        <span class="dt">type</span>: <span class="st">&quot;documentation&quot;</span>,
+                        <span class="dt">content</span>: parse_documentation_block()
+                    };
+                } <span class="kw">else</span> {
+                    unnext_line();
+                    <span class="kw">return</span> {
+                        <span class="dt">type</span>: <span class="st">&quot;code&quot;</span>,
+                        <span class="dt">content</span>: parse_code_block()
+                    };
+                }
+            };
+
+        <span class="kw">var</span> blocks = [];
+
+        <span class="kw">while</span> (<span class="kw">lines</span>.<span class="fu">length</span> &gt; <span class="dv">0</span>) {
+            <span class="kw">blocks</span>.<span class="fu">push</span>( parse_block() );
+        }
+
+        <span class="kw">return</span> blocks;
+    };
+</code></pre>
+<h2 id="generate-documentation"><a href="#generate-documentation">Generate documentation</a></h2>
+<p>From a sequence of blocks recognized by the <code>parse</code> function the code describing markdown documentation is generated by concatenating all block separated by newlines. Furthermore, all code blocks are enclosed by special lines to create so called <a href="http://johnmacfarlane.net/pandoc/README.html#fenced-code-blocks">fenced code blocks</a>. The fences are decorated with the name of the source language (javascript) to enable syntax highlighting in the generated documentation. If <code>SHOW_LINE_NUMBERS</code> is set, a flag to enable line numbers in the generated documentation is set. Line numbers and syntax highlighting is only visible after processing the generated documentation with <a href="http://johnmacfarlane.net/pandoc">pandoc</a>.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+    <span class="kw">var</span> SHOW_LINE_NUMBERS = <span class="kw">config</span>.<span class="fu">line</span>_<span class="fu">numbers</span> || <span class="kw">false</span>;
+
+    <span class="kw">var</span> generate_documentation = <span class="kw">function</span>( blocks ) {
+
+        <span class="kw">var</span> CODE_BLOCK_START = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">~~~ {.javascript&quot;</span> + (SHOW_LINE_NUMBERS?<span class="st">&quot; .lineNumbers&quot;</span>:<span class="st">&quot;&quot;</span>) + <span class="st">&quot;}</span><span class="ch">\n</span><span class="st">&quot;</span>,
+            CODE_BLOCK_END = <span class="st">&quot;</span><span class="ch">\n</span><span class="st">~~~</span><span class="ch">\n</span><span class="st">&quot;</span>;
+
+        <span class="kw">var</span> convert_block = <span class="kw">function</span>( documentation, block ) {
+            <span class="kw">switch</span> (<span class="kw">block</span>.<span class="fu">type</span>) {
+                <span class="kw">case</span> <span class="st">&quot;documentation&quot;</span>:
+                    documentation += <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span> + <span class="kw">block</span>.<span class="fu">content</span> + <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>;
+                    <span class="kw">break</span>;
+                <span class="kw">case</span> <span class="st">&quot;code&quot;</span>:
+                    documentation += CODE_BLOCK_START + <span class="kw">block</span>.<span class="fu">content</span> + CODE_BLOCK_END;
+                    <span class="kw">break</span>;
+            }
+            <span class="kw">return</span> documentation;
+        };
+
+        <span class="kw">return</span> <span class="kw">blocks</span>.<span class="fu">reduce</span>(convert_block, <span class="st">&quot;&quot;</span>);
+    };</code></pre>
+<h1 id="public-interface"><a href="#public-interface">Public interface</a></h1>
+<p>The incodoc module is accessible through its <code>invert</code> function. This function generates the code describing markdown documentation given a markdown documented source file.</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript">
+    <span class="kw">return</span> {
+        <span class="dt">invert</span>: <span class="kw">function</span>( source ) {
+            <span class="kw">return</span> generate_documentation( parse( source ) ).<span class="fu">trim</span>();
+        }
+    };
+
+};
+
+<span class="kw">module</span>.<span class="fu">exports</span> = incodoc;</code></pre>
+</body>
+</html>
